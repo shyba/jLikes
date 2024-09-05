@@ -12,5 +12,7 @@ public class Main {
         byte[] s = privkey.sign("hello".getBytes());
         System.out.println(Hex.toHexString(s));
         System.out.println(privkey.getPublicKey().verify(s, "hello".getBytes()));
+        System.out.println(s.length);
+        System.out.println(privkey.getPublicKey().asBytes().length);
     }
 }

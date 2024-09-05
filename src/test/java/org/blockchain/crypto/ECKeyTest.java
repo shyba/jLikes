@@ -1,11 +1,15 @@
 package org.blockchain.crypto;
 
-import junit.framework.TestCase;
+
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
-public class ECKeyTest extends TestCase {
+import static org.junit.jupiter.api.Assertions.*;
 
+public class ECKeyTest {
+
+    @Test
     public void testGenerateVerify() throws IOException {
         byte[] msg = "test".getBytes();
         ECPrivateKey key1 = new ECPrivateKey();
@@ -18,6 +22,7 @@ public class ECKeyTest extends TestCase {
         assertFalse(key2.getPublicKey().verify(sig1, msg));
     }
 
+    @Test
     public void testSerializeVerify() throws IOException {
         byte[] msg = "test".getBytes();
         ECPrivateKey key1 = new ECPrivateKey();

@@ -1,12 +1,12 @@
 package org.blockchain.model;
 
-import junit.framework.TestCase;
-import org.bouncycastle.util.encoders.Hex;
+import org.junit.jupiter.api.Test;
 
-import java.math.BigInteger;
+import static org.junit.jupiter.api.Assertions.*;
 
-public class TransactionOutputTest extends TestCase {
+public class TransactionOutputTest {
 
+    @Test
     public void testFromBytes() {
         byte[] hash = {
                 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
