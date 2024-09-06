@@ -18,6 +18,8 @@ class TransactionTest {
         TransactionOutput out = new TransactionOutput(target, 10);
         Transaction coinbase = new Transaction(List.of(tin), List.of(out));
         assertTrue(coinbase.isCoinbase());
+        assertTrue(coinbase.verify(new ArrayList<>()));
+        assertEquals(10, coinbase.getTotalValue());
     }
 
     @Test

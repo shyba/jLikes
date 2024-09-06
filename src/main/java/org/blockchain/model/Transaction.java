@@ -1,6 +1,6 @@
 package org.blockchain.model;
 
-import org.bouncycastle.jcajce.provider.asymmetric.rsa.DigestSignatureSpi;
+import org.blockchain.crypto.ECPublicKey;
 import org.bouncycastle.jcajce.provider.digest.SHA3;
 
 import java.io.ByteArrayInputStream;
@@ -15,13 +15,17 @@ import java.util.Objects;
 public class Transaction {
     public static final byte[] COINBASE = new byte[32];
 
-    private static int version = 0;
+    private static final int version = 0;
     private final List<TransactionInput> inputs;
     private final List<TransactionOutput> outputs;
 
     public Transaction(List<TransactionInput> inputs, List<TransactionOutput> outputs) {
         this.inputs = inputs;
         this.outputs = outputs;
+    }
+
+    public static int getVersion() {
+        return version;
     }
 
     public TransactionInput[] getInputs() {
@@ -44,13 +48,9 @@ public class Transaction {
         return Objects.hash(Arrays.hashCode(getInputs()), Arrays.hashCode(getOutputs()));
     }
 
-    public static int getVersion() {
-        return version;
-    }
-
     public boolean isCoinbase() {
-        for(TransactionInput tin : this.inputs){
-            if(!Arrays.equals(tin.getTxHash(), COINBASE) || tin.getTxOutIdx() != 0)
+        for (TransactionInput tin : this.inputs) {
+            if (!Arrays.equals(tin.getTxHash(), COINBASE) || tin.getTxOutIdx() != 0)
                 return false;
         }
         return this.inputs.size() == 1;
@@ -64,13 +64,13 @@ public class Transaction {
         ByteArrayOutputStream result = new ByteArrayOutputStream();
         result.write(version);
         result.write(this.inputs.size());
-        for(TransactionInput tin: this.inputs){
+        for (TransactionInput tin : this.inputs) {
             byte[] tinBytes = forSigning ? tin.asUnsignedBytes() : tin.asBytes();
             result.write(tinBytes.length);
             result.write(tinBytes);
         }
         result.write(this.outputs.size());
-        for(TransactionOutput out: this.outputs) {
+        for (TransactionOutput out : this.outputs) {
             byte[] outBytes = out.asBytes();
             result.write(outBytes.length);
             result.write(outBytes);
@@ -83,13 +83,13 @@ public class Transaction {
         assert in.read() == 0;
         int inputListSize = in.read();
         List<TransactionInput> inputs = new ArrayList<TransactionInput>(inputListSize);
-        for(int i=0; i<inputListSize; i++) {
+        for (int i = 0; i < inputListSize; i++) {
             int size = in.read();
             inputs.add(TransactionInput.fromBytes(in.readNBytes(size)));
         }
         int outputListSize = in.read();
         List<TransactionOutput> outputs = new ArrayList<>(outputListSize);
-        for(int i=0; i<outputListSize; i++) {
+        for (int i = 0; i < outputListSize; i++) {
             int size = in.read();
             outputs.add(TransactionOutput.fromBytes(in.readNBytes(size)));
         }
@@ -101,5 +101,30 @@ public class Transaction {
         final SHA3.DigestSHA3 sha3 = new SHA3.Digest256();
         sha3.update(serialized);
         return sha3.digest();
+    }
+
+    public long getTotalValue() {
+        long totalOutput = 0;
+        for (TransactionOutput output : this.outputs) totalOutput += output.getAmount();
+        return totalOutput;
+    }
+
+    public boolean verify(List<ECPublicKey> inputKeys) {
+        if(this.isCoinbase()) return true;
+        try {
+            if (inputKeys.size() != this.inputs.size()) return false;
+            byte[] unsigned = this.asBytes(true);
+            final SHA3.DigestSHA3 sha3 = new SHA3.Digest256();
+            sha3.update(unsigned);
+            byte[] hash = sha3.digest();
+            for (int i = 0; i < inputKeys.size(); i++) {
+                TransactionInput input = this.inputs.get(i);
+                ECPublicKey key = inputKeys.get(i);
+                if (!key.verify(input.getSignature(), hash)) return false;
+            }
+            return true;
+        } catch (IOException | ArrayIndexOutOfBoundsException e) {
+            return false;
+        }
     }
 }
