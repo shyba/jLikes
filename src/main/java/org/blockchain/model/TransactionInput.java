@@ -5,21 +5,21 @@ import java.util.Arrays;
 import java.util.Objects;
 
 public class TransactionInput {
-    private static final int SIZE = 32 + 4 + 73 + 33;
+    private static final int MIN_SIZE = 32 + 4 + 33;
     private final byte[] txHash;
     private final int txOutIdx;
-    private final byte[] signature;
     private final byte[] publicKeyBytes;
+    private final byte[] signature;
 
     public TransactionInput(byte[] txHash, int txOutIdx, byte[] signature, byte[] publicKeyBytes) {
         assert txHash.length == 32;
         this.txHash = txHash;
         assert txOutIdx >= 0;
         this.txOutIdx = txOutIdx;
-        assert signature.length <= 73;
-        this.signature = signature;
         assert publicKeyBytes.length == 33;
         this.publicKeyBytes = publicKeyBytes;
+        assert signature.length <= 74;
+        this.signature = signature;
     }
 
     public static TransactionInput fromBytes(byte[] raw) {
@@ -28,10 +28,10 @@ public class TransactionInput {
         byte[] rawIdx = new byte[4];
         System.arraycopy(raw, 32, rawIdx, 0, 4);
         int idx = ByteBuffer.wrap(rawIdx).getInt();
-        byte[] signature = new byte[73];
-        System.arraycopy(raw, 36, signature, 0, 73);
         byte[] pubkeyBytes = new byte[33];
-        System.arraycopy(raw, 36 + 73, pubkeyBytes, 0, 33);
+        System.arraycopy(raw, 36, pubkeyBytes, 0, 33);
+        byte[] signature = new byte[raw.length - MIN_SIZE];
+        System.arraycopy(raw, 69, signature, 0, raw.length - MIN_SIZE);
         return new TransactionInput(txHash, idx, signature, pubkeyBytes);
     }
 
@@ -68,12 +68,12 @@ public class TransactionInput {
     }
 
     public byte[] asBytes() {
-        byte[] result = new byte[SIZE];
+        byte[] result = new byte[MIN_SIZE + this.signature.length];
         System.arraycopy(this.txHash, 0, result, 0, 32);
         byte[] idxBytes = ByteBuffer.allocate(4).putInt(this.txOutIdx).array();
         System.arraycopy(idxBytes, 0, result, 36 - idxBytes.length, idxBytes.length);
-        System.arraycopy(this.signature, 0, result, 36, 73);
-        System.arraycopy(this.publicKeyBytes, 0, result, 36 + 73, 33);
+        System.arraycopy(this.publicKeyBytes, 0, result, 36, 33);
+        System.arraycopy(this.signature, 0, result, 69, this.signature.length);
         return result;
     }
 }

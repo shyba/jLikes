@@ -16,7 +16,7 @@ public class TransactionInputTest {
                 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
         };
         int idx = 12;
-        byte[] signature = new byte[72];
+        byte[] signature = new byte[70];
         ThreadLocalRandom.current().nextBytes(signature);
         byte[] pubkeyBytes = new byte[33];
         ThreadLocalRandom.current().nextBytes(pubkeyBytes);
