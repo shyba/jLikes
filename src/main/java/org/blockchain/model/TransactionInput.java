@@ -5,7 +5,7 @@ import java.util.Arrays;
 import java.util.Objects;
 
 public class TransactionInput {
-    private static final int MIN_SIZE = 32 + 4 + 33;
+    public static final int MIN_SIZE = 32 + 4 + 33;
     private final byte[] txHash;
     private final int txOutIdx;
     private final byte[] publicKeyBytes;
@@ -30,8 +30,13 @@ public class TransactionInput {
         int idx = ByteBuffer.wrap(rawIdx).getInt();
         byte[] pubkeyBytes = new byte[33];
         System.arraycopy(raw, 36, pubkeyBytes, 0, 33);
-        byte[] signature = new byte[raw.length - MIN_SIZE];
-        System.arraycopy(raw, 69, signature, 0, raw.length - MIN_SIZE);
+        byte[] signature;
+        if(raw.length > MIN_SIZE){
+            signature = new byte[raw.length - MIN_SIZE];
+            System.arraycopy(raw, 69, signature, 0, raw.length - MIN_SIZE);
+        } else {
+            signature = new byte[0];
+        }
         return new TransactionInput(txHash, idx, signature, pubkeyBytes);
     }
 
@@ -69,11 +74,17 @@ public class TransactionInput {
 
     public byte[] asBytes() {
         byte[] result = new byte[MIN_SIZE + this.signature.length];
+        System.arraycopy(this.asUnsignedBytes(), 0, result, 0, MIN_SIZE);
+        System.arraycopy(this.signature, 0, result, MIN_SIZE, this.signature.length);
+        return result;
+    }
+
+    public byte[] asUnsignedBytes() {
+        byte[] result = new byte[MIN_SIZE];
         System.arraycopy(this.txHash, 0, result, 0, 32);
         byte[] idxBytes = ByteBuffer.allocate(4).putInt(this.txOutIdx).array();
         System.arraycopy(idxBytes, 0, result, 36 - idxBytes.length, idxBytes.length);
         System.arraycopy(this.publicKeyBytes, 0, result, 36, 33);
-        System.arraycopy(this.signature, 0, result, 69, this.signature.length);
         return result;
     }
 }

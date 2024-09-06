@@ -29,5 +29,12 @@ public class TransactionInputTest {
         assertArrayEquals(tin.getSignature(), tin2.getSignature());
         assertEquals(tin.getTxOutIdx(), tin2.getTxOutIdx());
         assertEquals(tin, tin2);
+
+        byte[] unsignedBytes = new byte[TransactionInput.MIN_SIZE];
+        System.arraycopy(tinBytes, 0, unsignedBytes, 0, TransactionInput.MIN_SIZE);
+        TransactionInput unsignedTin = TransactionInput.fromBytes(unsignedBytes);
+        assertArrayEquals(tin.getTxHash(), unsignedTin.getTxHash());
+        assertArrayEquals(tin.getPublicKeyBytes(), unsignedTin.getPublicKeyBytes());
+        assertEquals(0, unsignedTin.getSignature().length);
     }
 }
