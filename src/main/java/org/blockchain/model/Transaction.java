@@ -1,5 +1,6 @@
 package org.blockchain.model;
 
+import org.blockchain.crypto.ECPrivateKey;
 import org.blockchain.crypto.ECPublicKey;
 import org.bouncycastle.jcajce.provider.digest.SHA3;
 
@@ -110,7 +111,7 @@ public class Transaction {
     }
 
     public boolean verify(List<ECPublicKey> inputKeys) {
-        if(this.isCoinbase()) return true;
+        if (this.isCoinbase()) return true;
         try {
             if (inputKeys.size() != this.inputs.size()) return false;
             byte[] unsigned = this.asBytes(true);
@@ -126,5 +127,26 @@ public class Transaction {
         } catch (IOException | ArrayIndexOutOfBoundsException e) {
             return false;
         }
+    }
+
+    public Transaction sign(List<ECPrivateKey> inputKeys) throws Exception {
+        if (inputKeys.size() != this.inputs.size()) throw new Exception("Key set and input set size mismatch");
+
+        byte[] unsigned = this.asBytes(true);
+        final SHA3.DigestSHA3 sha3 = new SHA3.Digest256();
+        sha3.update(unsigned);
+        byte[] hash = sha3.digest();
+
+        List<TransactionInput> signedInputs = new ArrayList<>(this.inputs.size());
+        for (int i = 0; i < inputKeys.size(); i++) {
+            TransactionInput unsignedInput = this.inputs.get(i);
+            ECPrivateKey key = inputKeys.get(i);
+            byte[] signature = key.sign(hash);
+            signedInputs.add(
+                    new TransactionInput(
+                            unsignedInput.getTxHash(), unsignedInput.getTxOutIdx(),
+                            signature, unsignedInput.getPublicKeyBytes()));
+        }
+        return new Transaction(signedInputs, List.of(this.getOutputs()));
     }
 }
