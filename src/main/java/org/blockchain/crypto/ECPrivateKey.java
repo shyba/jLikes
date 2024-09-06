@@ -15,7 +15,7 @@ import java.math.BigInteger;
 import java.security.SecureRandom;
 
 public class ECPrivateKey {
-    private ECPrivateKeyParameters params;
+    private final ECPrivateKeyParameters params;
 
     public ECPrivateKey() {
         SecureRandom secureRandom = new SecureRandom();

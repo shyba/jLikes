@@ -1,11 +1,7 @@
 package org.blockchain.crypto;
 
 import org.bouncycastle.asn1.ASN1Integer;
-import org.bouncycastle.asn1.ASN1Primitive;
 import org.bouncycastle.asn1.ASN1Sequence;
-import org.bouncycastle.asn1.DERSequence;
-import org.bouncycastle.asn1.bc.SignatureCheck;
-import org.bouncycastle.asn1.ocsp.Signature;
 import org.bouncycastle.crypto.params.ECPublicKeyParameters;
 import org.bouncycastle.crypto.signers.ECDSASigner;
 import org.bouncycastle.math.ec.ECPoint;
@@ -14,7 +10,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 
 public class ECPublicKey {
-    private ECPublicKeyParameters publicParams;
+    private final ECPublicKeyParameters publicParams;
 
     public ECPublicKey(byte[] serialized) {
         ECPoint point = ECParams.CURVE.getCurve().decodePoint(serialized);

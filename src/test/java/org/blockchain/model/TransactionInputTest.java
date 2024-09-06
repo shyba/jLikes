@@ -4,7 +4,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.ThreadLocalRandom;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TransactionInputTest {
 
@@ -19,7 +20,7 @@ public class TransactionInputTest {
         ThreadLocalRandom.current().nextBytes(signature);
         byte[] pubkeyBytes = new byte[33];
         ThreadLocalRandom.current().nextBytes(pubkeyBytes);
-        TransactionInput tin =  new TransactionInput(txHash, idx, signature, pubkeyBytes);
+        TransactionInput tin = new TransactionInput(txHash, idx, signature, pubkeyBytes);
 
         byte[] tinBytes = tin.asBytes();
         TransactionInput tin2 = TransactionInput.fromBytes(tinBytes);
