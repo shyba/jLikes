@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Objects;
 
 public class TransactionOutput {
+    private final byte type = 0;
     private final byte[] targetHash;
     private final long amount;
 
@@ -16,11 +17,16 @@ public class TransactionOutput {
     }
 
     public static TransactionOutput fromBytes(byte[] raw) {
+        assert raw[0] == 0;
         byte[] targetHash = new byte[32];
-        System.arraycopy(raw, 0, targetHash, 0, 32);
+        System.arraycopy(raw, 1, targetHash, 0, 32);
         byte[] rawAmount = new byte[8];
-        System.arraycopy(raw, 32, rawAmount, 0, 8);
+        System.arraycopy(raw, 33, rawAmount, 0, 8);
         return new TransactionOutput(targetHash, ByteBuffer.wrap(rawAmount).getLong());
+    }
+
+    public byte getType() {
+        return this.type;
     }
 
     public long getAmount() {
@@ -44,10 +50,11 @@ public class TransactionOutput {
     }
 
     public byte[] asBytes() {
-        byte[] result = new byte[40];
-        System.arraycopy(this.targetHash, 0, result, 0, 32);
+        byte[] result = new byte[41];
+        // skip a zero byte for the type, which is 0 here
+        System.arraycopy(this.targetHash, 0, result, 1, 32);
         byte[] ambytes = ByteBuffer.allocate(8).putLong(this.amount).array();
-        System.arraycopy(ambytes, 0, result, 40 - ambytes.length, ambytes.length);
+        System.arraycopy(ambytes, 0, result, 41 - ambytes.length, ambytes.length);
         return result;
     }
 }
