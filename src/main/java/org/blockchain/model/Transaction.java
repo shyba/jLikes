@@ -2,6 +2,7 @@ package org.blockchain.model;
 
 import org.blockchain.crypto.ECPrivateKey;
 import org.blockchain.crypto.ECPublicKey;
+import org.apache.tuweni.bytes.Bytes32;
 import org.bouncycastle.jcajce.provider.digest.SHA3;
 
 import java.io.ByteArrayInputStream;
@@ -97,10 +98,30 @@ public class Transaction {
         return new Transaction(inputs, outputs);
     }
 
-    public static Transaction payCoinbaseTo(byte[] pubkey) {
+    public static Transaction payCoinbaseTo(Bytes32 pubkeyHash) {
         TransactionInput tin = new TransactionInput(Transaction.COINBASE, 0, new byte[0], new byte[33]);
-        TransactionOutput out = new TransactionOutput(pubkey, 10);
+        TransactionOutput out = new TransactionOutput(pubkeyHash, 10);
         return new Transaction(List.of(tin), List.of(out));
+    }
+
+    public Transaction spendAllTo(ECPrivateKey ownerKey, Bytes32 targetHash) throws Exception {
+        byte[] pubkey = ownerKey.getPublicKey().asBytes();
+        Bytes32 ownerKeyHash = ownerKey.getPublicKey().getHash();
+        long total = 0;
+        List<TransactionInput> inputs = new ArrayList<>(this.outputs.size());
+        for(int i=0;i<this.inputs.size();i++) {
+            TransactionOutput out = this.outputs.get(i);
+            if (out.getTargetHash().compareTo(ownerKeyHash) != 0) {
+                throw new Exception("The given private key is not the owner of one of the outputs");
+            } else {
+                total += out.getAmount();
+                TransactionInput in = new TransactionInput(this.getTransactionHash(), i, new byte[0], pubkey);
+                inputs.add(in);
+            }
+        }
+        TransactionOutput out = new TransactionOutput(targetHash, total);
+        Transaction unsignedTx = new Transaction(inputs, List.of(out));
+        return unsignedTx.sign(List.of(ownerKey));
     }
 
     public byte[] getTransactionHash() throws IOException {

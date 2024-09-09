@@ -1,5 +1,6 @@
 package org.blockchain.model;
 
+import org.apache.tuweni.bytes.Bytes32;
 import org.blockchain.crypto.ECPrivateKey;
 import org.junit.jupiter.api.Test;
 
@@ -13,8 +14,7 @@ class TransactionTest {
 
     @Test
     void isCoinbase() {
-        byte[] target = new byte[32];
-        ThreadLocalRandom.current().nextBytes(target);
+        Bytes32 target = Bytes32.random();
         Transaction coinbase = Transaction.payCoinbaseTo(target);
         assertTrue(coinbase.isCoinbase());
         assertTrue(coinbase.verify(new ArrayList<>()));
@@ -23,9 +23,7 @@ class TransactionTest {
 
     @Test
     void coinbaseFromBytes() throws IOException {
-        byte[] target = new byte[32];
-        ThreadLocalRandom.current().nextBytes(target);
-
+        Bytes32 target = Bytes32.random();
         Transaction coinbase = Transaction.payCoinbaseTo(target);
 
         byte[] serialized = coinbase.asBytes();
@@ -35,8 +33,13 @@ class TransactionTest {
     }
 
     @Test
-    void spendCoinbase() {
-        ECPrivateKey privateKey = new ECPrivateKey();
+    void spendCoinbase() throws Exception {
+        ECPrivateKey privKey = new ECPrivateKey();
+        Bytes32 targetHash = privKey.getPublicKey().getHash();
+        Transaction coinbase = Transaction.payCoinbaseTo(targetHash);
 
+        ECPrivateKey anotherPrivKey = new ECPrivateKey();
+        Transaction payment = coinbase.spendAllTo(privKey, anotherPrivKey.getPublicKey().getHash());
+        assertTrue(payment.verify(List.of(privKey.getPublicKey())));
     }
 }
