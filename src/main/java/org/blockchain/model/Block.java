@@ -1,44 +1,54 @@
 package org.blockchain.model;
 
 
+import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
 import org.blockchain.crypto.ECPrivateKey;
 import org.bouncycastle.jcajce.provider.digest.SHA3;
-import org.hyperledger.besu.ethereum.trie.verkle.SimpleVerkleTrie;
+import org.hyperledger.besu.ethereum.trie.MerkleTrie;
+import org.hyperledger.besu.ethereum.trie.SimpleMerkleTrie;
+import org.hyperledger.besu.ethereum.trie.patricia.SimpleMerklePatriciaTrie;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
+import java.util.function.Function;
 
 public class Block {
     private final byte version = 0;
-    private final Bytes32 rootHash;
+    private final Bytes32 transactionsRootHash;
+    private final Bytes32 globalStateRootHash;
     private final Bytes32 previousHash;
     private final List<Transaction> txs;
     private final byte[] signature;
     private final byte[] signerPubkey;
 
-    public Block(Bytes32 rootHash, Bytes32 previousHash, byte[] signature, byte[] pubkey, List<Transaction> txs) {
-        this.rootHash = rootHash;
+    public Block(
+            Bytes32 transactionsRootHash, Bytes32 globalStateRootHash, Bytes32 previousHash, byte[] signature,
+            byte[] pubkey, List<Transaction> txs) {
+        this.transactionsRootHash = transactionsRootHash;
+        this.globalStateRootHash = globalStateRootHash;
         this.previousHash = previousHash;
         this.signature = signature;
         this.signerPubkey = pubkey;
         this.txs = txs;
     }
 
-    public static Block buildUnsignedFromTxList(Bytes32 previousHash, List<Transaction> txs) throws IOException {
+    public static Block buildUnsignedFromTxList(
+            Bytes32 previousHash, Bytes32 globalStateRootHash, List<Transaction> txs) throws IOException {
         // builds an unsigned block
-        Bytes32 rootHash = Block.getRootHashForTransactionList(txs);
-        return new Block(rootHash, previousHash, new byte[0], new byte[0], txs);
+        Bytes32 txRootHash = Block.getRootHashForTransactionList(txs);
+        return new Block(txRootHash, globalStateRootHash, previousHash, new byte[0], new byte[0], txs);
     }
 
     public Block signed(ECPrivateKey signer) throws IOException {
         byte[] signature = signer.sign(this.getHash(true).toArray());
-        return new Block(this.rootHash, this.previousHash, signature, signer.getPublicKey().asBytes(), this.txs);
+        return new Block(this.transactionsRootHash, this.globalStateRootHash, this.previousHash,
+                signature, signer.getPublicKey().asBytes(), this.txs);
     }
 
     public static Bytes32 getRootHashForTransactionList(List<Transaction> txs) throws IOException {
-        SimpleVerkleTrie<Bytes32, Bytes32> trie = new SimpleVerkleTrie<Bytes32, Bytes32>();
+        MerkleTrie<Bytes, Bytes> trie = new SimpleMerklePatriciaTrie<Bytes, Bytes>(Function.identity());
         for(Transaction tx:txs) {
             // todo: what else to use as value? maybe index?
             trie.put(tx.getTransactionHash(), tx.getTransactionHash());
@@ -53,7 +63,8 @@ public class Block {
     public byte[] asBytes(boolean forSigning) throws IOException {
         ByteArrayOutputStream result = new ByteArrayOutputStream();
         result.write(this.version);
-        result.write(this.rootHash.toArray());
+        result.write(this.transactionsRootHash.toArray());
+        result.write(this.globalStateRootHash.toArray());
         result.write(this.previousHash.toArray());
         for(Transaction tx:this.txs){
             byte[] rawtx = tx.asBytes();

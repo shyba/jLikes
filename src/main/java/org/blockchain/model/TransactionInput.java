@@ -1,18 +1,18 @@
 package org.blockchain.model;
 
+import org.apache.tuweni.bytes.Bytes32;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Objects;
 
 public class TransactionInput {
     public static final int MIN_SIZE = 32 + 4 + 33;
-    private final byte[] txHash;
+    private final Bytes32 txHash;
     private final int txOutIdx;
     private final byte[] publicKeyBytes;
     private final byte[] signature;
 
-    public TransactionInput(byte[] txHash, int txOutIdx, byte[] signature, byte[] publicKeyBytes) {
-        assert txHash.length == 32;
+    public TransactionInput(Bytes32 txHash, int txOutIdx, byte[] signature, byte[] publicKeyBytes) {
         this.txHash = txHash;
         assert txOutIdx >= 0;
         this.txOutIdx = txOutIdx;
@@ -23,8 +23,7 @@ public class TransactionInput {
     }
 
     public static TransactionInput fromBytes(byte[] raw) {
-        byte[] txHash = new byte[32];
-        System.arraycopy(raw, 0, txHash, 0, 32);
+        Bytes32 txHash = Bytes32.wrap(raw);
         byte[] rawIdx = new byte[4];
         System.arraycopy(raw, 32, rawIdx, 0, 4);
         int idx = ByteBuffer.wrap(rawIdx).getInt();
@@ -52,11 +51,11 @@ public class TransactionInput {
     @Override
     public int hashCode() {
         return Objects.hash(
-                Arrays.hashCode(getTxHash()), getTxOutIdx(),
+                Arrays.hashCode(getTxHash().toArray()), getTxOutIdx(),
                 Arrays.hashCode(getSignature()), Arrays.hashCode(getPublicKeyBytes()));
     }
 
-    public byte[] getTxHash() {
+    public Bytes32 getTxHash() {
         return txHash;
     }
 
@@ -81,7 +80,7 @@ public class TransactionInput {
 
     public byte[] asUnsignedBytes() {
         byte[] result = new byte[MIN_SIZE];
-        System.arraycopy(this.txHash, 0, result, 0, 32);
+        System.arraycopy(this.txHash.toArray(), 0, result, 0, 32);
         byte[] idxBytes = ByteBuffer.allocate(4).putInt(this.txOutIdx).array();
         System.arraycopy(idxBytes, 0, result, 36 - idxBytes.length, idxBytes.length);
         System.arraycopy(this.publicKeyBytes, 0, result, 36, 33);

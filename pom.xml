@@ -20,9 +20,9 @@
             <version>1.78.1</version>
         </dependency>
         <dependency>
-            <groupId>org.hyperledger.besu</groupId>
-            <artifactId>besu-verkle-trie</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
+            <groupId>org.hyperledger.besu.internal</groupId>
+            <artifactId>trie</artifactId>
+            <version>24.8.0</version>
         </dependency>
         <dependency>
             <groupId>io.tmio</groupId>

@@ -15,7 +15,7 @@ import java.util.Objects;
 
 
 public class Transaction {
-    public static final byte[] COINBASE = new byte[32];
+    public static final Bytes32 COINBASE = Bytes32.ZERO;
 
     private static final int version = 0;
     private final List<TransactionInput> inputs;
@@ -52,7 +52,7 @@ public class Transaction {
 
     public boolean isCoinbase() {
         for (TransactionInput tin : this.inputs) {
-            if (!Arrays.equals(tin.getTxHash(), COINBASE) || tin.getTxOutIdx() != 0)
+            if (!tin.getTxHash().equals(COINBASE) || tin.getTxOutIdx() != 0)
                 return false;
         }
         return this.inputs.size() == 1;
