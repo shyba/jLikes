@@ -4,6 +4,7 @@ package org.blockchain.model;
 import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
 import org.blockchain.crypto.ECPrivateKey;
+import org.blockchain.crypto.ECPublicKey;
 import org.bouncycastle.jcajce.provider.digest.SHA3;
 import org.hyperledger.besu.ethereum.trie.MerkleTrie;
 import org.hyperledger.besu.ethereum.trie.SimpleMerkleTrie;
@@ -11,6 +12,7 @@ import org.hyperledger.besu.ethereum.trie.patricia.SimpleMerklePatriciaTrie;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.ByteOrder;
 import java.util.List;
 import java.util.function.Function;
 
@@ -41,6 +43,18 @@ public class Block {
         return new Block(txRootHash, globalStateRootHash, previousHash, new byte[0], new byte[0], txs);
     }
 
+    public boolean isSignatureValid() {
+        if(this.signature.length == 0 || this.signerPubkey.length == 0) {
+            ECPublicKey pubKey = new ECPublicKey(this.signerPubkey);
+            try {
+                return pubKey.verify(this.signature, this.asBytes(true));
+            } catch (IOException e) {
+                return false;
+            }
+        }
+        return false;
+    }
+
     public Block signed(ECPrivateKey signer) throws IOException {
         byte[] signature = signer.sign(this.getHash(true).toArray());
         return new Block(this.transactionsRootHash, this.globalStateRootHash, this.previousHash,
@@ -48,10 +62,10 @@ public class Block {
     }
 
     public static Bytes32 getRootHashForTransactionList(List<Transaction> txs) throws IOException {
-        MerkleTrie<Bytes, Bytes> trie = new SimpleMerklePatriciaTrie<Bytes, Bytes>(Function.identity());
-        for(Transaction tx:txs) {
-            // todo: what else to use as value? maybe index?
-            trie.put(tx.getTransactionHash(), tx.getTransactionHash());
+        MerkleTrie<Bytes, Bytes> trie = new SimpleMerklePatriciaTrie<>(Function.identity());
+        for(int i=0; i<txs.size(); i++) {
+            Transaction tx = txs.get(i);
+            trie.put(Bytes.ofUnsignedInt(i, ByteOrder.BIG_ENDIAN), tx.getTransactionHash());
         }
         return trie.getRootHash();
     }
