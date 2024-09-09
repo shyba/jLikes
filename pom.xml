@@ -25,6 +25,18 @@
             <version>RELEASE</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.hyperledger.besu.internal</groupId>
+            <artifactId>verkletrie</artifactId>
+            <version>24.8.0</version>
+        </dependency>
     </dependencies>
+    <repositories>
+        <repository>
+            <id>besu</id>
+            <name>besu</name>
+            <url>https://hyperledger.jfrog.io/artifactory/besu-maven/</url>
+        </repository>
+    </repositories>
 
 </project>
