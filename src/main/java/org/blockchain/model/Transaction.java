@@ -79,7 +79,7 @@ public class Transaction {
         return result.toByteArray();
     }
 
-    public Transaction fromBytes(byte[] raw) throws IOException {
+    public static Transaction fromBytes(byte[] raw) throws IOException {
         ByteArrayInputStream in = new ByteArrayInputStream(raw);
         assert in.read() == 0;
         int inputListSize = in.read();
@@ -95,6 +95,12 @@ public class Transaction {
             outputs.add(TransactionOutput.fromBytes(in.readNBytes(size)));
         }
         return new Transaction(inputs, outputs);
+    }
+
+    public static Transaction payCoinbaseTo(byte[] pubkey) {
+        TransactionInput tin = new TransactionInput(Transaction.COINBASE, 0, new byte[0], new byte[33]);
+        TransactionOutput out = new TransactionOutput(pubkey, 10);
+        return new Transaction(List.of(tin), List.of(out));
     }
 
     public byte[] getTransactionHash() throws IOException {

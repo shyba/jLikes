@@ -1,5 +1,6 @@
 package org.blockchain.model;
 
+import org.blockchain.crypto.ECPrivateKey;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -14,9 +15,7 @@ class TransactionTest {
     void isCoinbase() {
         byte[] target = new byte[32];
         ThreadLocalRandom.current().nextBytes(target);
-        TransactionInput tin = new TransactionInput(Transaction.COINBASE, 0, new byte[0], new byte[33]);
-        TransactionOutput out = new TransactionOutput(target, 10);
-        Transaction coinbase = new Transaction(List.of(tin), List.of(out));
+        Transaction coinbase = Transaction.payCoinbaseTo(target);
         assertTrue(coinbase.isCoinbase());
         assertTrue(coinbase.verify(new ArrayList<>()));
         assertEquals(10, coinbase.getTotalValue());
@@ -26,13 +25,18 @@ class TransactionTest {
     void coinbaseFromBytes() throws IOException {
         byte[] target = new byte[32];
         ThreadLocalRandom.current().nextBytes(target);
-        TransactionInput tin = new TransactionInput(Transaction.COINBASE, 0, new byte[0], new byte[33]);
-        TransactionOutput out = new TransactionOutput(target, 10);
-        Transaction coinbase = new Transaction(List.of(tin), List.of(out));
+
+        Transaction coinbase = Transaction.payCoinbaseTo(target);
 
         byte[] serialized = coinbase.asBytes();
-        Transaction recovered = coinbase.fromBytes(serialized);
+        Transaction recovered = Transaction.fromBytes(serialized);
         assertEquals(recovered, coinbase);
         assertArrayEquals(recovered.getTransactionHash(), coinbase.getTransactionHash());
+    }
+
+    @Test
+    void spendCoinbase() {
+        ECPrivateKey privateKey = new ECPrivateKey();
+
     }
 }
