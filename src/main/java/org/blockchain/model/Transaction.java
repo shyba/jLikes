@@ -124,11 +124,11 @@ public class Transaction {
         return unsignedTx.sign(List.of(ownerKey));
     }
 
-    public byte[] getTransactionHash() throws IOException {
+    public Bytes32 getTransactionHash() throws IOException {
         byte[] serialized = this.asBytes();
         final SHA3.DigestSHA3 sha3 = new SHA3.Digest256();
         sha3.update(serialized);
-        return sha3.digest();
+        return Bytes32.wrap(sha3.digest());
     }
 
     public long getTotalValue() {

@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
 
 import static org.junit.jupiter.api.Assertions.*;
 class TransactionTest {
@@ -29,7 +28,7 @@ class TransactionTest {
         byte[] serialized = coinbase.asBytes();
         Transaction recovered = Transaction.fromBytes(serialized);
         assertEquals(recovered, coinbase);
-        assertArrayEquals(recovered.getTransactionHash(), coinbase.getTransactionHash());
+        assertArrayEquals(recovered.getTransactionHash().toArray(), coinbase.getTransactionHash().toArray());
     }
 
     @Test
