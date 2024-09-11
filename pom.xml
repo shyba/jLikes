@@ -25,6 +25,11 @@
             <version>24.8.0</version>
         </dependency>
         <dependency>
+            <groupId>org.rocksdb</groupId>
+            <artifactId>rocksdbjni</artifactId>
+            <version>9.5.2</version>
+        </dependency>
+        <dependency>
             <groupId>io.tmio</groupId>
             <artifactId>tuweni-bytes</artifactId>
             <version>2.4.2</version>
