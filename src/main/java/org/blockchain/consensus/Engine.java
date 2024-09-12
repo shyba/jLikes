@@ -40,14 +40,14 @@ public class Engine {
         if(this.latest == null) {
             this.acceptBlock(this.proposer.proposeBlock(Bytes32.ZERO, List.of()));
         } else {
-            Block block = this.proposer.proposeBlock(Bytes32.ZERO, mempool);
-            int size = this.mempool.size() - 1;
+            Block block = this.proposer.proposeBlock(this.latest.getHash(), mempool);
+            int size = this.mempool.size();
             while(block.asBytes().length > this.maxBlockSize) {
                 size -= 1;
-                block = this.proposer.proposeBlock(Bytes32.ZERO, mempool.subList(0, size));
+                block = this.proposer.proposeBlock(this.latest.getHash(), mempool.subList(0, size));
             }
             if (size >= 0) {
-                this.mempool.subList(0, size + 1).clear();
+                this.mempool.subList(0, size).clear();
             }
             this.acceptBlock(block);
         }
