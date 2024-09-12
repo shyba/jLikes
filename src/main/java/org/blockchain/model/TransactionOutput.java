@@ -19,7 +19,7 @@ public class TransactionOutput {
 
     public static TransactionOutput fromBytes(byte[] raw) {
         assert raw[0] == 0;
-        Bytes32 targetHash = Bytes32.wrap(raw);
+        Bytes32 targetHash = Bytes32.secure(raw, 1);
         byte[] rawAmount = new byte[8];
         System.arraycopy(raw, 33, rawAmount, 0, 8);
         return new TransactionOutput(targetHash, ByteBuffer.wrap(rawAmount).getLong());

@@ -16,7 +16,7 @@ class TransactionTest {
         Bytes32 target = Bytes32.random();
         Transaction coinbase = Transaction.payCoinbaseTo(target);
         assertTrue(coinbase.isCoinbase());
-        assertTrue(coinbase.verify(new ArrayList<>()));
+        assertTrue(coinbase.verifySignatures());
         assertEquals(10, coinbase.getTotalValue());
     }
 
@@ -39,6 +39,6 @@ class TransactionTest {
 
         ECPrivateKey anotherPrivKey = new ECPrivateKey();
         Transaction payment = coinbase.spendAllTo(privKey, anotherPrivKey.getPublicKey().getHash());
-        assertTrue(payment.verify(List.of(privKey.getPublicKey())));
+        assertTrue(payment.verifySignatures());
     }
 }

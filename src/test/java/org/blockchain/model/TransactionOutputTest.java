@@ -14,6 +14,7 @@ public class TransactionOutputTest {
         byte[] outBytes = out.asBytes();
         TransactionOutput out2 = TransactionOutput.fromBytes(outBytes);
         assertEquals(out.getAmount(), out2.getAmount());
+        assertEquals(out.getTargetHash(), out2.getTargetHash());
         assertEquals(out, out2);
     }
 }

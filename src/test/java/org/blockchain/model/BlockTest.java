@@ -22,6 +22,7 @@ class BlockTest {
 
         Block block = Block.buildUnsignedFromTxList(previousHash, globalStateRootHash, List.of(coinbase, spend));
         assertFalse(block.isSignatureValid());
+
         block = block.signed(myPrivKey);
         assertTrue(block.isSignatureValid());
     }

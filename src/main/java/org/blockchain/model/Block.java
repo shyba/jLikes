@@ -36,6 +36,10 @@ public class Block {
         this.txs = txs;
     }
 
+    public List<Transaction> getTxs() {
+        return List.copyOf(txs);
+    }
+
     public static Block buildUnsignedFromTxList(
             Bytes32 previousHash, Bytes32 globalStateRootHash, List<Transaction> txs) throws IOException {
         // builds an unsigned block
@@ -44,10 +48,10 @@ public class Block {
     }
 
     public boolean isSignatureValid() {
-        if(this.signature.length == 0 || this.signerPubkey.length == 0) {
+        if(this.signature.length > 0 && this.signerPubkey.length > 0) {
             ECPublicKey pubKey = new ECPublicKey(this.signerPubkey);
             try {
-                return pubKey.verify(this.signature, this.asBytes(true));
+                return pubKey.verify(this.signature, this.getHash(true).toArray());
             } catch (IOException e) {
                 return false;
             }
@@ -80,6 +84,7 @@ public class Block {
         result.write(this.transactionsRootHash.toArray());
         result.write(this.globalStateRootHash.toArray());
         result.write(this.previousHash.toArray());
+        result.write(this.txs.size());
         for(Transaction tx:this.txs){
             byte[] rawtx = tx.asBytes();
             result.write(rawtx.length);
@@ -90,9 +95,12 @@ public class Block {
             result.write(this.signature);
             result.write(this.signerPubkey.length);
             result.write(this.signerPubkey);
-            result.write(this.txs.size());
         }
         return result.toByteArray();
+    }
+
+    public Bytes32 getPreviousHash() {
+        return previousHash;
     }
 
     public Bytes32 getHash() throws IOException {

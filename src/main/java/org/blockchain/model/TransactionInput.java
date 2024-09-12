@@ -23,7 +23,7 @@ public class TransactionInput {
     }
 
     public static TransactionInput fromBytes(byte[] raw) {
-        Bytes32 txHash = Bytes32.wrap(raw);
+        Bytes32 txHash = Bytes32.secure(raw, 0);
         byte[] rawIdx = new byte[4];
         System.arraycopy(raw, 32, rawIdx, 0, 4);
         int idx = ByteBuffer.wrap(rawIdx).getInt();

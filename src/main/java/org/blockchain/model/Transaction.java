@@ -137,17 +137,15 @@ public class Transaction {
         return totalOutput;
     }
 
-    public boolean verify(List<ECPublicKey> inputKeys) {
+    public boolean verifySignatures() {
         if (this.isCoinbase()) return true;
         try {
-            if (inputKeys.size() != this.inputs.size()) return false;
             byte[] unsigned = this.asBytes(true);
             final SHA3.DigestSHA3 sha3 = new SHA3.Digest256();
             sha3.update(unsigned);
             byte[] hash = sha3.digest();
-            for (int i = 0; i < inputKeys.size(); i++) {
-                TransactionInput input = this.inputs.get(i);
-                ECPublicKey key = inputKeys.get(i);
+            for (TransactionInput input : this.inputs) {
+                ECPublicKey key = new ECPublicKey(input.getPublicKeyBytes());
                 if (!key.verify(input.getSignature(), hash)) return false;
             }
             return true;
