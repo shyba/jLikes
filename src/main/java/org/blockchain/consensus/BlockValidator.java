@@ -46,8 +46,14 @@ public class BlockValidator {
                     Transaction referenced = this.txStore.get(txIn.getTxHash());
                     if(referenced == null) return false;
                     if(txIn.getTxOutIdx() >= referenced.getOutputs().length) return false;
-                    TransactionOutput out = Arrays.stream(referenced.getOutputs()).toList().get(txIn.getTxOutIdx());
+                    TransactionOutput out = referenced.getOutputs()[txIn.getTxOutIdx()];
+                    if(out.getTargetHash() != new ECPublicKey(txIn.getPublicKeyBytes()).getHash()) return false;
+                    totalInputValue += out.getAmount();
                 }
+                for(TransactionOutput out: tx.getOutputs()){
+                    if(out.getAmount() < 0) return false;
+                }
+                if(totalInputValue > tx.getTotalValue()) return false;
             }
         }
         return false;

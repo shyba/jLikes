@@ -4,8 +4,11 @@ import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
 import org.blockchain.Parameters;
 import org.blockchain.crypto.ECPrivateKey;
+import org.blockchain.crypto.ECPublicKey;
 import org.blockchain.model.Block;
 import org.blockchain.model.Transaction;
+import org.blockchain.model.TransactionInput;
+import org.blockchain.model.TransactionOutput;
 import org.blockchain.storage.KVStore;
 
 import java.io.IOException;
@@ -51,6 +54,34 @@ public class Engine {
             }
             this.acceptBlock(block);
         }
+    }
+
+    public void submitTransaction(Transaction tx) throws Exception {
+        if(!tx.verifySignatures()) throw new Exception("Invalid tx signature");
+        if(this.txStore.get(tx.getTransactionHash()) != null) throw new Exception("Transaction already confirmed");
+        long totalInputValue = 0;
+        for(Transaction mempoolTx:this.mempool) {
+            if(mempoolTx.getTransactionHash() == tx.getTransactionHash()) throw new Exception("Transaction already in mempool");
+        }
+
+        for(TransactionInput input:tx.getInputs()){
+            Transaction referencedTx = this.txStore.get(input.getTxHash());
+            if(referencedTx == null){
+                for(Transaction mempoolTx:this.mempool) {
+                    if(mempoolTx.getTransactionHash() == input.getTxHash()) {
+                        referencedTx = mempoolTx;
+                    }
+                }
+                if(referencedTx == null) throw new Exception("Input not found");
+            }
+            TransactionOutput referencedOut = referencedTx.getOutputs()[input.getTxOutIdx()];
+            if(referencedOut.getTargetHash() != new ECPublicKey(input.getPublicKeyBytes()).getHash()) throw new Exception("Key mismatch");
+            totalInputValue += referencedOut.getAmount();
+        }
+        for(TransactionOutput out: tx.getOutputs()){
+            if(out.getAmount() < 0) throw new Exception("negative amount");
+        }
+        if(totalInputValue > tx.getTotalValue()) throw new Exception("Amount spent greater than inputs");
     }
 
     private void acceptBlock(Block block) throws IOException {
