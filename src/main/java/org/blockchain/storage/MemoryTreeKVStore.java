@@ -2,11 +2,15 @@ package org.blockchain.storage;
 
 import org.apache.tuweni.bytes.Bytes;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.function.Function;
 
 public class MemoryTreeKVStore<T> extends KVStore<T> {
-    private TreeMap<Bytes, Bytes> memory;
+    private final TreeMap<Bytes, Bytes> memory;
+
     public MemoryTreeKVStore(Function<T, Bytes> serializer, Function<Bytes, T> deSerializer) {
         super(serializer, deSerializer);
         this.memory = new TreeMap<>();

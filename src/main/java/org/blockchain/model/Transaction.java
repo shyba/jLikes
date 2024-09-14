@@ -1,9 +1,9 @@
 package org.blockchain.model;
 
 import org.apache.tuweni.bytes.Bytes;
+import org.apache.tuweni.bytes.Bytes32;
 import org.blockchain.crypto.ECPrivateKey;
 import org.blockchain.crypto.ECPublicKey;
-import org.apache.tuweni.bytes.Bytes32;
 import org.bouncycastle.jcajce.provider.digest.SHA3;
 
 import java.io.ByteArrayInputStream;
@@ -29,6 +29,34 @@ public class Transaction {
 
     public static int getVersion() {
         return version;
+    }
+
+    public static Transaction fromBytes(Bytes raw) {
+        try {
+            ByteArrayInputStream in = new ByteArrayInputStream(raw.toArray());
+            assert in.read() == 0;
+            int inputListSize = in.read();
+            List<TransactionInput> inputs = new ArrayList<TransactionInput>(inputListSize);
+            for (int i = 0; i < inputListSize; i++) {
+                int size = in.read();
+                inputs.add(TransactionInput.fromBytes(in.readNBytes(size)));
+            }
+            int outputListSize = in.read();
+            List<TransactionOutput> outputs = new ArrayList<>(outputListSize);
+            for (int i = 0; i < outputListSize; i++) {
+                int size = in.read();
+                outputs.add(TransactionOutput.fromBytes(in.readNBytes(size)));
+            }
+            return new Transaction(inputs, outputs);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static Transaction payCoinbaseTo(Bytes32 pubkeyHash) {
+        TransactionInput tin = new TransactionInput(Transaction.COINBASE, 0, new byte[0], new byte[33]);
+        TransactionOutput out = new TransactionOutput(pubkeyHash, 10);
+        return new Transaction(List.of(tin), List.of(out));
     }
 
     public TransactionInput[] getInputs() {
@@ -85,40 +113,12 @@ public class Transaction {
         }
     }
 
-    public static Transaction fromBytes(Bytes raw) {
-        try {
-            ByteArrayInputStream in = new ByteArrayInputStream(raw.toArray());
-            assert in.read() == 0;
-            int inputListSize = in.read();
-            List<TransactionInput> inputs = new ArrayList<TransactionInput>(inputListSize);
-            for (int i = 0; i < inputListSize; i++) {
-                int size = in.read();
-                inputs.add(TransactionInput.fromBytes(in.readNBytes(size)));
-            }
-            int outputListSize = in.read();
-            List<TransactionOutput> outputs = new ArrayList<>(outputListSize);
-            for (int i = 0; i < outputListSize; i++) {
-                int size = in.read();
-                outputs.add(TransactionOutput.fromBytes(in.readNBytes(size)));
-            }
-            return new Transaction(inputs, outputs);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static Transaction payCoinbaseTo(Bytes32 pubkeyHash) {
-        TransactionInput tin = new TransactionInput(Transaction.COINBASE, 0, new byte[0], new byte[33]);
-        TransactionOutput out = new TransactionOutput(pubkeyHash, 10);
-        return new Transaction(List.of(tin), List.of(out));
-    }
-
     public Transaction spendAllTo(ECPrivateKey ownerKey, Bytes32 targetHash) throws Exception {
         byte[] pubkey = ownerKey.getPublicKey().asBytes();
         Bytes32 ownerKeyHash = ownerKey.getPublicKey().getHash();
         long total = 0;
         List<TransactionInput> inputs = new ArrayList<>(this.outputs.size());
-        for(int i=0;i<this.inputs.size();i++) {
+        for (int i = 0; i < this.inputs.size(); i++) {
             TransactionOutput out = this.outputs.get(i);
             if (out.getTargetHash().compareTo(ownerKeyHash) != 0) {
                 throw new Exception("The given private key is not the owner of one of the outputs");
