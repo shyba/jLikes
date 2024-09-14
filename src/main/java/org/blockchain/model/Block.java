@@ -7,17 +7,21 @@ import org.blockchain.crypto.ECPrivateKey;
 import org.blockchain.crypto.ECPublicKey;
 import org.bouncycastle.jcajce.provider.digest.SHA3;
 import org.hyperledger.besu.ethereum.trie.MerkleTrie;
-import org.hyperledger.besu.ethereum.trie.SimpleMerkleTrie;
 import org.hyperledger.besu.ethereum.trie.patricia.SimpleMerklePatriciaTrie;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 
 public class Block {
-    private final byte version = 0;
+    public static final byte VERSION = 0;
     private final Bytes32 transactionsRootHash;
     private final Bytes32 globalStateRootHash;
     private final Bytes32 previousHash;
@@ -36,10 +40,6 @@ public class Block {
         this.txs = txs;
     }
 
-    public List<Transaction> getTxs() {
-        return List.copyOf(txs);
-    }
-
     public static Block buildUnsignedFromTxList(
             Bytes32 previousHash, Bytes32 globalStateRootHash, List<Transaction> txs) throws IOException {
         // builds an unsigned block
@@ -47,8 +47,59 @@ public class Block {
         return new Block(txRootHash, globalStateRootHash, previousHash, new byte[0], new byte[0], txs);
     }
 
+    public static Bytes32 getRootHashForTransactionList(List<Transaction> txs) throws IOException {
+        MerkleTrie<Bytes, Bytes> trie = new SimpleMerklePatriciaTrie<>(Function.identity());
+        for (int i = 0; i < txs.size(); i++) {
+            Transaction tx = txs.get(i);
+            trie.put(Bytes.ofUnsignedInt(i, ByteOrder.BIG_ENDIAN), tx.getTransactionHash());
+        }
+        return trie.getRootHash();
+    }
+
+    public static Block fromBytes(byte[] raw) throws IOException {
+        ByteArrayInputStream in = new ByteArrayInputStream(raw);
+        assert in.read() == Block.VERSION; // todo: validate from a range
+        Bytes32 transactionsRootHash = Bytes32.wrap(in.readNBytes(32));
+        Bytes32 globalStateRootHash = Bytes32.wrap(in.readNBytes(32));
+        Bytes32 previousHash = Bytes32.wrap(in.readNBytes(32));
+        int txSetSize = ByteBuffer.wrap(in.readNBytes(4)).getInt();
+        List<Transaction> txs = new ArrayList<>();
+        for (int i = 0; i < txSetSize; i++) {
+            int txSize = in.read();
+            txs.add(Transaction.fromBytes(in.readNBytes(txSize)));
+        }
+        if (in.available() > 0) {
+            byte[] signature = in.readNBytes(in.read());
+            byte[] pubkey = in.readNBytes(in.read());
+            return new Block(transactionsRootHash, globalStateRootHash, previousHash, signature, pubkey, txs);
+        }
+        return new Block(transactionsRootHash, globalStateRootHash, previousHash, new byte[0], new byte[0], txs);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Block block)) return false;
+        return Objects.equals(transactionsRootHash, block.transactionsRootHash) &&
+                Objects.equals(globalStateRootHash, block.globalStateRootHash) &&
+                Objects.equals(getPreviousHash(), block.getPreviousHash()) &&
+                Objects.equals(getTxs(), block.getTxs()) &&
+                Objects.deepEquals(signature, block.signature) && Objects.deepEquals(signerPubkey, block.signerPubkey);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(
+                transactionsRootHash, globalStateRootHash, getPreviousHash(), getTxs(),
+                Arrays.hashCode(signature), Arrays.hashCode(signerPubkey));
+    }
+
+    public List<Transaction> getTxs() {
+        return List.copyOf(txs);
+    }
+
     public boolean isSignatureValid() {
-        if(this.signature.length > 0 && this.signerPubkey.length > 0) {
+        if (this.signature.length > 0 && this.signerPubkey.length > 0) {
             ECPublicKey pubKey = new ECPublicKey(this.signerPubkey);
             try {
                 return pubKey.verify(this.signature, this.getHash(true).toArray());
@@ -65,32 +116,23 @@ public class Block {
                 signature, signer.getPublicKey().asBytes(), this.txs);
     }
 
-    public static Bytes32 getRootHashForTransactionList(List<Transaction> txs) throws IOException {
-        MerkleTrie<Bytes, Bytes> trie = new SimpleMerklePatriciaTrie<>(Function.identity());
-        for(int i=0; i<txs.size(); i++) {
-            Transaction tx = txs.get(i);
-            trie.put(Bytes.ofUnsignedInt(i, ByteOrder.BIG_ENDIAN), tx.getTransactionHash());
-        }
-        return trie.getRootHash();
-    }
-
     public byte[] asBytes() throws IOException {
         return this.asBytes(false);
     }
 
     public byte[] asBytes(boolean forSigning) throws IOException {
         ByteArrayOutputStream result = new ByteArrayOutputStream();
-        result.write(this.version);
+        result.write(Block.VERSION);
         result.write(this.transactionsRootHash.toArray());
         result.write(this.globalStateRootHash.toArray());
         result.write(this.previousHash.toArray());
-        result.write(this.txs.size());
-        for(Transaction tx:this.txs){
+        result.write(ByteBuffer.allocate(4).putInt(this.txs.size()).array());
+        for (Transaction tx : this.txs) {
             byte[] rawtx = tx.asBytes();
             result.write(rawtx.length);
             result.write(rawtx);
         }
-        if(!forSigning) {
+        if (!forSigning) {
             result.write(this.signature.length);
             result.write(this.signature);
             result.write(this.signerPubkey.length);
@@ -107,6 +149,7 @@ public class Block {
         return this.getHash(false);
 
     }
+
     public Bytes32 getHash(boolean forSigning) throws IOException {
         byte[] serialized = this.asBytes(forSigning);
         final SHA3.DigestSHA3 sha3 = new SHA3.Digest256();

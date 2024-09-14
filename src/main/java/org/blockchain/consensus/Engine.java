@@ -12,7 +12,6 @@ import org.blockchain.model.TransactionOutput;
 import org.blockchain.storage.KVStore;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -32,6 +31,14 @@ public class Engine {
         this.txStore = txStore;
         this.mempool = new LinkedList<>();
         this.maxBlockSize = Parameters.MAX_BLOCK_SIZE_BYTES;
+    }
+
+    public Bytes32 getLatestBlockHash() {
+        try {
+            return latest.getHash();
+        } catch (IOException e) {
+            return null;
+        }
     }
 
     public void setMaxBlockSize(long maxBlockSize) {

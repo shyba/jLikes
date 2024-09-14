@@ -25,5 +25,7 @@ class BlockTest {
 
         block = block.signed(myPrivKey);
         assertTrue(block.isSignatureValid());
+        Block reassembled = Block.fromBytes(block.asBytes());
+        assertEquals(reassembled, block);
     }
 }
