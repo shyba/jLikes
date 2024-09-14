@@ -52,6 +52,7 @@ public class BlockValidator {
                 }
                 if (totalInputValue > tx.getTotalValue()) return false;
             }
+            return true;
         }
         return false;
     }

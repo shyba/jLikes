@@ -18,7 +18,9 @@ public class MemoryTreeKVStore<T> extends KVStore<T> {
 
     @Override
     public T get(Bytes key) {
-        return this.deSerializer.apply(this.memory.get(key));
+        Bytes raw = this.memory.get(key);
+        if (raw != null) return this.deSerializer.apply(this.memory.get(key));
+        return null;
     }
 
     @Override
