@@ -56,24 +56,28 @@ public class Block {
         return trie.getRootHash();
     }
 
-    public static Block fromBytes(byte[] raw) throws IOException {
-        ByteArrayInputStream in = new ByteArrayInputStream(raw);
-        assert in.read() == Block.VERSION; // todo: validate from a range
-        Bytes32 transactionsRootHash = Bytes32.wrap(in.readNBytes(32));
-        Bytes32 globalStateRootHash = Bytes32.wrap(in.readNBytes(32));
-        Bytes32 previousHash = Bytes32.wrap(in.readNBytes(32));
-        int txSetSize = ByteBuffer.wrap(in.readNBytes(4)).getInt();
-        List<Transaction> txs = new ArrayList<>();
-        for (int i = 0; i < txSetSize; i++) {
-            int txSize = in.read();
-            txs.add(Transaction.fromBytes(in.readNBytes(txSize)));
+    public static Block fromBytes(Bytes raw) {
+        try {
+            ByteArrayInputStream in = new ByteArrayInputStream(raw.toArray());
+            assert in.read() == Block.VERSION; // todo: validate from a range
+            Bytes32 transactionsRootHash = Bytes32.wrap(in.readNBytes(32));
+            Bytes32 globalStateRootHash = Bytes32.wrap(in.readNBytes(32));
+            Bytes32 previousHash = Bytes32.wrap(in.readNBytes(32));
+            int txSetSize = ByteBuffer.wrap(in.readNBytes(4)).getInt();
+            List<Transaction> txs = new ArrayList<>();
+            for (int i = 0; i < txSetSize; i++) {
+                int txSize = in.read();
+                txs.add(Transaction.fromBytes(Bytes.wrap(in.readNBytes(txSize))));
+            }
+            if (in.available() > 0) {
+                byte[] signature = in.readNBytes(in.read());
+                byte[] pubkey = in.readNBytes(in.read());
+                return new Block(transactionsRootHash, globalStateRootHash, previousHash, signature, pubkey, txs);
+            }
+            return new Block(transactionsRootHash, globalStateRootHash, previousHash, new byte[0], new byte[0], txs);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-        if (in.available() > 0) {
-            byte[] signature = in.readNBytes(in.read());
-            byte[] pubkey = in.readNBytes(in.read());
-            return new Block(transactionsRootHash, globalStateRootHash, previousHash, signature, pubkey, txs);
-        }
-        return new Block(transactionsRootHash, globalStateRootHash, previousHash, new byte[0], new byte[0], txs);
     }
 
     @Override
@@ -116,29 +120,33 @@ public class Block {
                 signature, signer.getPublicKey().asBytes(), this.txs);
     }
 
-    public byte[] asBytes() throws IOException {
+    public Bytes asBytes() {
         return this.asBytes(false);
     }
 
-    public byte[] asBytes(boolean forSigning) throws IOException {
-        ByteArrayOutputStream result = new ByteArrayOutputStream();
-        result.write(Block.VERSION);
-        result.write(this.transactionsRootHash.toArray());
-        result.write(this.globalStateRootHash.toArray());
-        result.write(this.previousHash.toArray());
-        result.write(ByteBuffer.allocate(4).putInt(this.txs.size()).array());
-        for (Transaction tx : this.txs) {
-            byte[] rawtx = tx.asBytes();
-            result.write(rawtx.length);
-            result.write(rawtx);
+    public Bytes asBytes(boolean forSigning) {
+        try {
+            ByteArrayOutputStream result = new ByteArrayOutputStream();
+            result.write(Block.VERSION);
+            result.write(this.transactionsRootHash.toArray());
+            result.write(this.globalStateRootHash.toArray());
+            result.write(this.previousHash.toArray());
+            result.write(ByteBuffer.allocate(4).putInt(this.txs.size()).array());
+            for (Transaction tx : this.txs) {
+                byte[] rawtx = tx.asBytes().toArray();
+                result.write(rawtx.length);
+                result.write(rawtx);
+            }
+            if (!forSigning) {
+                result.write(this.signature.length);
+                result.write(this.signature);
+                result.write(this.signerPubkey.length);
+                result.write(this.signerPubkey);
+            }
+            return Bytes.wrap(result.toByteArray());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-        if (!forSigning) {
-            result.write(this.signature.length);
-            result.write(this.signature);
-            result.write(this.signerPubkey.length);
-            result.write(this.signerPubkey);
-        }
-        return result.toByteArray();
     }
 
     public Bytes32 getPreviousHash() {
@@ -150,10 +158,9 @@ public class Block {
 
     }
 
-    public Bytes32 getHash(boolean forSigning) throws IOException {
-        byte[] serialized = this.asBytes(forSigning);
+    public Bytes32 getHash(boolean forSigning) {
         final SHA3.DigestSHA3 sha3 = new SHA3.Digest256();
-        sha3.update(serialized);
+        sha3.update(this.asBytes(forSigning).toArray());
         return Bytes32.wrap(sha3.digest());
     }
 

@@ -1,5 +1,6 @@
 package org.blockchain.model;
 
+import org.apache.tuweni.bytes.Bytes;
 import org.blockchain.crypto.ECPrivateKey;
 import org.blockchain.crypto.ECPublicKey;
 import org.apache.tuweni.bytes.Bytes32;
@@ -58,44 +59,52 @@ public class Transaction {
         return this.inputs.size() == 1;
     }
 
-    public byte[] asBytes() throws IOException {
+    public Bytes asBytes() {
         return this.asBytes(false);
     }
 
-    public byte[] asBytes(boolean forSigning) throws IOException {
-        ByteArrayOutputStream result = new ByteArrayOutputStream();
-        result.write(version);
-        result.write(this.inputs.size());
-        for (TransactionInput tin : this.inputs) {
-            byte[] tinBytes = forSigning ? tin.asUnsignedBytes() : tin.asBytes();
-            result.write(tinBytes.length);
-            result.write(tinBytes);
+    public Bytes asBytes(boolean forSigning) {
+        try {
+            ByteArrayOutputStream result = new ByteArrayOutputStream();
+            result.write(version);
+            result.write(this.inputs.size());
+            for (TransactionInput tin : this.inputs) {
+                byte[] tinBytes = forSigning ? tin.asUnsignedBytes() : tin.asBytes();
+                result.write(tinBytes.length);
+                result.write(tinBytes);
+            }
+            result.write(this.outputs.size());
+            for (TransactionOutput out : this.outputs) {
+                byte[] outBytes = out.asBytes();
+                result.write(outBytes.length);
+                result.write(outBytes);
+            }
+            return Bytes.wrap(result.toByteArray());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-        result.write(this.outputs.size());
-        for (TransactionOutput out : this.outputs) {
-            byte[] outBytes = out.asBytes();
-            result.write(outBytes.length);
-            result.write(outBytes);
-        }
-        return result.toByteArray();
     }
 
-    public static Transaction fromBytes(byte[] raw) throws IOException {
-        ByteArrayInputStream in = new ByteArrayInputStream(raw);
-        assert in.read() == 0;
-        int inputListSize = in.read();
-        List<TransactionInput> inputs = new ArrayList<TransactionInput>(inputListSize);
-        for (int i = 0; i < inputListSize; i++) {
-            int size = in.read();
-            inputs.add(TransactionInput.fromBytes(in.readNBytes(size)));
+    public static Transaction fromBytes(Bytes raw) {
+        try {
+            ByteArrayInputStream in = new ByteArrayInputStream(raw.toArray());
+            assert in.read() == 0;
+            int inputListSize = in.read();
+            List<TransactionInput> inputs = new ArrayList<TransactionInput>(inputListSize);
+            for (int i = 0; i < inputListSize; i++) {
+                int size = in.read();
+                inputs.add(TransactionInput.fromBytes(in.readNBytes(size)));
+            }
+            int outputListSize = in.read();
+            List<TransactionOutput> outputs = new ArrayList<>(outputListSize);
+            for (int i = 0; i < outputListSize; i++) {
+                int size = in.read();
+                outputs.add(TransactionOutput.fromBytes(in.readNBytes(size)));
+            }
+            return new Transaction(inputs, outputs);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-        int outputListSize = in.read();
-        List<TransactionOutput> outputs = new ArrayList<>(outputListSize);
-        for (int i = 0; i < outputListSize; i++) {
-            int size = in.read();
-            outputs.add(TransactionOutput.fromBytes(in.readNBytes(size)));
-        }
-        return new Transaction(inputs, outputs);
     }
 
     public static Transaction payCoinbaseTo(Bytes32 pubkeyHash) {
@@ -125,9 +134,8 @@ public class Transaction {
     }
 
     public Bytes32 getTransactionHash() throws IOException {
-        byte[] serialized = this.asBytes();
         final SHA3.DigestSHA3 sha3 = new SHA3.Digest256();
-        sha3.update(serialized);
+        sha3.update(this.asBytes().toArray());
         return Bytes32.wrap(sha3.digest());
     }
 
@@ -140,9 +148,8 @@ public class Transaction {
     public boolean verifySignatures() {
         if (this.isCoinbase()) return true;
         try {
-            byte[] unsigned = this.asBytes(true);
             final SHA3.DigestSHA3 sha3 = new SHA3.Digest256();
-            sha3.update(unsigned);
+            sha3.update(this.asBytes(true).toArray());
             byte[] hash = sha3.digest();
             for (TransactionInput input : this.inputs) {
                 ECPublicKey key = new ECPublicKey(input.getPublicKeyBytes());
@@ -157,9 +164,8 @@ public class Transaction {
     public Transaction sign(List<ECPrivateKey> inputKeys) throws Exception {
         if (inputKeys.size() != this.inputs.size()) throw new Exception("Key set and input set size mismatch");
 
-        byte[] unsigned = this.asBytes(true);
         final SHA3.DigestSHA3 sha3 = new SHA3.Digest256();
-        sha3.update(unsigned);
+        sha3.update(this.asBytes(true).toArray());
         byte[] hash = sha3.digest();
 
         List<TransactionInput> signedInputs = new ArrayList<>(this.inputs.size());

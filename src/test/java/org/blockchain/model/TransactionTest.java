@@ -25,8 +25,7 @@ class TransactionTest {
         Bytes32 target = Bytes32.random();
         Transaction coinbase = Transaction.payCoinbaseTo(target);
 
-        byte[] serialized = coinbase.asBytes();
-        Transaction recovered = Transaction.fromBytes(serialized);
+        Transaction recovered = Transaction.fromBytes(coinbase.asBytes());
         assertEquals(recovered, coinbase);
         assertArrayEquals(recovered.getTransactionHash().toArray(), coinbase.getTransactionHash().toArray());
     }

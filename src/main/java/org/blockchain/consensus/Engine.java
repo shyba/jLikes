@@ -52,7 +52,7 @@ public class Engine {
         } else {
             Block block = this.proposer.proposeBlock(this.latest.getHash(), mempool);
             int size = this.mempool.size();
-            while(block.asBytes().length > this.maxBlockSize) {
+            while(block.asBytes().size() > this.maxBlockSize) {
                 size -= 1;
                 block = this.proposer.proposeBlock(this.latest.getHash(), mempool.subList(0, size));
             }
