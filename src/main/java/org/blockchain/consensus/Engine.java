@@ -101,6 +101,9 @@ public class Engine {
     private void acceptBlock(Block block) throws IOException {
         assert this.validator.isValid(block);
         this.blockStore.put(block.getHash(), block);
+        for (Transaction tx : block.getTxs()) {
+            this.txStore.put(tx.getTransactionHash(), tx);
+        }
         this.ensureLatest();
         assert this.latest.equals(block);
         logger.info(String.format("New block! Current %s previous %s, %d transactions", block.getHash().toHexString(), block.getPreviousHash().toHexString(), block.getTxs().size()));
