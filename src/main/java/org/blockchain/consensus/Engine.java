@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.Logger;
 
 public class Engine {
     private final BlockValidator validator;
@@ -24,6 +25,7 @@ public class Engine {
     private final List<Transaction> mempool;
     private Block latest;
     private long maxBlockSize;
+    private Logger logger = Logger.getLogger(Engine.class.getName());
 
     public Engine(KVStore<Block> blockStore, KVStore<Transaction> txStore, ECPrivateKey proposerKey) {
         this.blockStore = blockStore;
@@ -48,6 +50,8 @@ public class Engine {
 
     public void advance() throws IOException {
         this.ensureLatest();
+        logger.info("Advancing to the next block. Current: "
+                + (this.latest != null ? this.latest.getHash().toShortHexString() : "NO BLOCK"));
         if (this.latest == null) {
             this.acceptBlock(this.proposer.proposeBlock(Bytes32.ZERO, List.of()));
         } else {
@@ -69,7 +73,7 @@ public class Engine {
         if (this.txStore.get(tx.getTransactionHash()) != null) throw new Exception("Transaction already confirmed");
         long totalInputValue = 0;
         for (Transaction mempoolTx : this.mempool) {
-            if (mempoolTx.getTransactionHash() == tx.getTransactionHash())
+            if (mempoolTx.getTransactionHash().equals(tx.getTransactionHash()))
                 throw new Exception("Transaction already in mempool");
         }
 
@@ -77,14 +81,14 @@ public class Engine {
             Transaction referencedTx = this.txStore.get(input.getTxHash());
             if (referencedTx == null) {
                 for (Transaction mempoolTx : this.mempool) {
-                    if (mempoolTx.getTransactionHash() == input.getTxHash()) {
+                    if (mempoolTx.getTransactionHash().equals(input.getTxHash())) {
                         referencedTx = mempoolTx;
                     }
                 }
                 if (referencedTx == null) throw new Exception("Input not found");
             }
             TransactionOutput referencedOut = referencedTx.getOutputs()[input.getTxOutIdx()];
-            if (referencedOut.getTargetHash() != new ECPublicKey(input.getPublicKeyBytes()).getHash())
+            if (!referencedOut.getTargetHash().equals(new ECPublicKey(input.getPublicKeyBytes()).getHash()))
                 throw new Exception("Key mismatch");
             totalInputValue += referencedOut.getAmount();
         }
@@ -99,6 +103,7 @@ public class Engine {
         this.blockStore.put(block.getHash(), block);
         this.ensureLatest();
         assert this.latest.equals(block);
+        logger.info(String.format("New block! Current %s previous %s, %d transactions", block.getHash().toHexString(), block.getPreviousHash().toHexString(), block.getTxs().size()));
     }
 
     private void ensureLatest() throws IOException {
