@@ -96,6 +96,8 @@ public class Engine {
             if (out.getAmount() < 0) throw new Exception("negative amount");
         }
         if (totalInputValue > tx.getTotalValue()) throw new Exception("Amount spent greater than inputs");
+        this.logger.info(String.format("New transaction added to mempool: %s", tx));
+        this.mempool.add(tx);
     }
 
     private void acceptBlock(Block block) throws IOException {

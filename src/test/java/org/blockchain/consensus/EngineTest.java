@@ -41,6 +41,24 @@ class EngineTest {
         this.verifiedAdvance(chain, 3);
     }
 
+    @Test
+    void simpleTransfer() {
+        TestChain chain = new TestChain();
+        ECPrivateKey secondAccount = new ECPrivateKey();
+
+        this.verifiedAdvance(chain, 1);
+        Transaction input = chain.blockKVStore.get(chain.engine.getLatestBlockHash()).getTxs().getFirst();
+        Transaction send = input.spend(chain.key, secondAccount.getPublicKey().getHash(), 5);
+        try {
+            chain.engine.submitTransaction(send);
+        } catch (Exception e) {
+            fail(e);
+        }
+        this.verifiedAdvance(chain, 2);
+        assertEquals(2, chain.blockKVStore.get(chain.engine.getLatestBlockHash()).getTxs().size());
+        this.verifiedAdvance(chain, 3);
+    }
+
     void verifiedAdvance(TestChain chain, int expectedHeight) {
         try {
             chain.engine.advance();

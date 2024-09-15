@@ -113,24 +113,40 @@ public class Transaction {
         }
     }
 
-    public Transaction spendAllTo(ECPrivateKey ownerKey, Bytes32 targetHash) throws Exception {
+    public Transaction spendAllTo(ECPrivateKey ownerKey, Bytes32 targetHash) {
+        return this.spend(ownerKey, targetHash, -1);
+    }
+
+    public Transaction spend(ECPrivateKey ownerKey, Bytes32 targetHash, long amount) {
+        boolean spendAll = amount == -1;
+        if (!spendAll && amount < 1) throw new RuntimeException("Amount is required to be positive.");
         byte[] pubkey = ownerKey.getPublicKey().asBytes();
         Bytes32 ownerKeyHash = ownerKey.getPublicKey().getHash();
         long total = 0;
-        List<TransactionInput> inputs = new ArrayList<>(this.outputs.size());
-        for (int i = 0; i < this.inputs.size(); i++) {
-            TransactionOutput out = this.outputs.get(i);
-            if (out.getTargetHash().compareTo(ownerKeyHash) != 0) {
-                throw new Exception("The given private key is not the owner of one of the outputs");
-            } else {
-                total += out.getAmount();
-                TransactionInput in = new TransactionInput(this.getTransactionHash(), i, new byte[0], pubkey);
-                inputs.add(in);
+        try {
+            List<TransactionInput> inputs = new ArrayList<>(this.outputs.size());
+            for (int i = 0; i < this.inputs.size(); i++) {
+                TransactionOutput out = this.outputs.get(i);
+                if (out.getTargetHash().compareTo(ownerKeyHash) != 0) {
+                    throw new RuntimeException("The given private key is not the owner of one of the outputs");
+                } else {
+                    total += out.getAmount();
+                    TransactionInput in = new TransactionInput(this.getTransactionHash(), i, new byte[0], pubkey);
+                    inputs.add(in);
+                }
             }
+            if (total < amount) throw new RuntimeException("Insufficient balance from tx.");
+            amount = spendAll ? total : amount;
+            List<TransactionOutput> outputs = new ArrayList<>();
+            outputs.add(new TransactionOutput(targetHash, amount));
+            if (amount < total) {
+                outputs.add(new TransactionOutput(ownerKeyHash, total - amount));
+            }
+            Transaction unsignedTx = new Transaction(inputs, outputs);
+            return unsignedTx.sign(List.of(ownerKey));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-        TransactionOutput out = new TransactionOutput(targetHash, total);
-        Transaction unsignedTx = new Transaction(inputs, List.of(out));
-        return unsignedTx.sign(List.of(ownerKey));
     }
 
     public Bytes32 getTransactionHash() throws IOException {
@@ -161,8 +177,8 @@ public class Transaction {
         }
     }
 
-    public Transaction sign(List<ECPrivateKey> inputKeys) throws Exception {
-        if (inputKeys.size() != this.inputs.size()) throw new Exception("Key set and input set size mismatch");
+    public Transaction sign(List<ECPrivateKey> inputKeys) {
+        if (inputKeys.size() != this.inputs.size()) throw new RuntimeException("Key set and input set size mismatch");
 
         final SHA3.DigestSHA3 sha3 = new SHA3.Digest256();
         sha3.update(this.asBytes(true).toArray());
@@ -172,11 +188,15 @@ public class Transaction {
         for (int i = 0; i < inputKeys.size(); i++) {
             TransactionInput unsignedInput = this.inputs.get(i);
             ECPrivateKey key = inputKeys.get(i);
-            byte[] signature = key.sign(hash);
-            signedInputs.add(
-                    new TransactionInput(
-                            unsignedInput.getTxHash(), unsignedInput.getTxOutIdx(),
-                            signature, unsignedInput.getPublicKeyBytes()));
+            try {
+                byte[] signature = key.sign(hash);
+                signedInputs.add(
+                        new TransactionInput(
+                                unsignedInput.getTxHash(), unsignedInput.getTxOutIdx(),
+                                signature, unsignedInput.getPublicKeyBytes()));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
         return new Transaction(signedInputs, List.of(this.getOutputs()));
     }
