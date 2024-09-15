@@ -34,30 +34,35 @@ class EngineTest {
     }
 
     @Test
-    void emptySimpleAdvance() throws IOException {
+    void emptySimpleAdvance() {
         TestChain chain = new TestChain();
+        this.verifiedAdvance(chain, 1);
+        this.verifiedAdvance(chain, 2);
+        this.verifiedAdvance(chain, 3);
+    }
 
-        Engine engine = chain.engine;
-        engine.advance();
-        engine.advance();
-        engine.advance();
-
-        Bytes32 latestHash = engine.getLatestBlockHash();
-        int expectedHeight = 3;
-        while (!latestHash.equals(Bytes32.ZERO)) {
-            expectedHeight -= 1;
-            Block latestBlock = chain.blockKVStore.get(latestHash);
-            if (latestBlock == null) {
-                fail(String.format("Block %s not found!", latestHash));
-            }
-            for (Transaction tx : latestBlock.getTxs()) {
-                if (chain.txKVStore.get(tx.getTransactionHash()) == null) {
-                    fail(String.format(
-                            "Transaction present in a block but missing from store: %s", tx.getTransactionHash()));
+    void verifiedAdvance(TestChain chain, int expectedHeight) {
+        try {
+            chain.engine.advance();
+            Bytes32 latestHash = chain.engine.getLatestBlockHash();
+            while (!latestHash.equals(Bytes32.ZERO)) {
+                expectedHeight -= 1;
+                Block latestBlock = chain.blockKVStore.get(latestHash);
+                if (latestBlock == null) {
+                    fail(String.format("Block %s not found!", latestHash));
                 }
+                for (Transaction tx : latestBlock.getTxs()) {
+                    if (chain.txKVStore.get(tx.getTransactionHash()) == null) {
+                        fail(String.format(
+                                "Transaction present in a block but missing from store: %s", tx.getTransactionHash()));
+                    }
+                }
+                latestHash = latestBlock.getPreviousHash();
             }
-            latestHash = latestBlock.getPreviousHash();
+            assertEquals(expectedHeight, 0);
+
+        } catch (IOException e) {
+            fail(e);
         }
-        assertEquals(expectedHeight, 0);
     }
 }
