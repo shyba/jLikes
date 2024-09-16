@@ -108,6 +108,29 @@ class EngineTest {
         this.verifiedAdvance(chain, 3);
     }
 
+    @Test
+    void doubleSpendFromMempool() {
+        TestChain chain = new TestChain();
+        ECPrivateKey secondAccount = new ECPrivateKey();
+        ECPrivateKey thirdAccount = new ECPrivateKey();
+
+        this.verifiedAdvance(chain, 1);
+        Transaction input = chain.blockKVStore.get(chain.engine.getLatestBlockHash()).getTxs().getFirst();
+        Transaction send = input.spend(chain.key, secondAccount.getPublicKey().getHash(), 5);
+        try {
+            chain.engine.submitTransaction(send);
+        } catch (Exception e) {
+            fail(e);
+        }
+        try {
+            Transaction send2 = input.spend(chain.key, thirdAccount.getPublicKey().getHash(), 5);
+            chain.engine.submitTransaction(send2);
+            fail("double spend from mempool not detected");
+        } catch (Exception e) {
+            // yay
+        }
+    }
+
     void verifiedAdvance(TestChain chain, int expectedHeight) {
         try {
             chain.engine.advance();

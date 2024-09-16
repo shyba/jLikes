@@ -93,6 +93,14 @@ public class Engine {
                 }
                 if (referencedTx == null) throw new Exception("Input not found");
             }
+            for (Transaction mempoolTx : this.mempool) {
+                for (TransactionInput mempoolInput : mempoolTx.getInputs()) {
+                    if (mempoolInput.getTxHash().equals(input.getTxHash())
+                            && mempoolInput.getTxOutIdx() == input.getTxOutIdx()) {
+                        throw new Exception("Mempool Input already spent");
+                    }
+                }
+            }
             TransactionOutput referencedOut = referencedTx.getOutputs()[input.getTxOutIdx()];
             if (!onMempool && this.utxoStore.get(this.spentKey(referencedTx.getTransactionHash(), input.getTxOutIdx())) == null) {
                 throw new Exception("Input already spent");
