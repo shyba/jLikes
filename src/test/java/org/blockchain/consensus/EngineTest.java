@@ -142,7 +142,7 @@ class EngineTest {
         Transaction send = input.spend(chain.key, secondAccount.getPublicKey().getHash(), 50);
         try {
             chain.engine.submitTransaction(send);
-            fail("tx accepted with over draft");
+            fail("tx accepted with wrong key");
         } catch (Exception e) {
             // pass
         }
@@ -158,7 +158,7 @@ class EngineTest {
         Transaction send = input.spend(secondAccount, secondAccount.getPublicKey().getHash(), 5);
         try {
             chain.engine.submitTransaction(send);
-            fail("tx accepted with wrong key");
+            fail("tx accepted with over draft");
         } catch (Exception e) {
             // pass
         }

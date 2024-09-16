@@ -118,6 +118,7 @@ public class Engine {
     }
 
     private void acceptBlock(Block block) throws IOException {
+        // todo: verify everything again, so that we can accept blocks from other nodes
         assert this.validator.isValid(block);
         this.blockStore.put(block.getHash(), block);
         for (Transaction tx : block.getTxs()) {
