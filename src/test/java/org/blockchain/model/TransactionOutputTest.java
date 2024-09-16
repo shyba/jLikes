@@ -1,5 +1,6 @@
 package org.blockchain.model;
 
+import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
 import org.junit.jupiter.api.Test;
 
@@ -11,7 +12,7 @@ public class TransactionOutputTest {
     public void testFromBytes() {
         Bytes32 hash = Bytes32.random();
         TransactionOutput out = new TransactionOutput(hash, Long.MAX_VALUE);
-        byte[] outBytes = out.asBytes();
+        Bytes outBytes = out.asBytes();
         TransactionOutput out2 = TransactionOutput.fromBytes(outBytes);
         assertEquals(out.getAmount(), out2.getAmount());
         assertEquals(out.getTargetHash(), out2.getTargetHash());

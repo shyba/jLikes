@@ -1,5 +1,6 @@
 package org.blockchain.model;
 
+import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
 
 import java.nio.ByteBuffer;
@@ -17,11 +18,11 @@ public class TransactionOutput {
         this.amount = amount;
     }
 
-    public static TransactionOutput fromBytes(byte[] raw) {
-        assert raw[0] == 0;
-        Bytes32 targetHash = Bytes32.secure(raw, 1);
+    public static TransactionOutput fromBytes(Bytes raw) {
+        assert raw.get(0) == 0;
+        Bytes32 targetHash = Bytes32.secure(raw.toArray(), 1);
         byte[] rawAmount = new byte[8];
-        System.arraycopy(raw, 33, rawAmount, 0, 8);
+        System.arraycopy(raw.toArray(), 33, rawAmount, 0, 8);
         return new TransactionOutput(targetHash, ByteBuffer.wrap(rawAmount).getLong());
     }
 
@@ -49,12 +50,12 @@ public class TransactionOutput {
         return Objects.hash(Arrays.hashCode(getTargetHash().toArray()), getAmount());
     }
 
-    public byte[] asBytes() {
+    public Bytes asBytes() {
         byte[] result = new byte[41];
         // skip a zero byte for the type, which is 0 here
         System.arraycopy(this.targetHash.toArray(), 0, result, 1, 32);
         byte[] ambytes = ByteBuffer.allocate(8).putLong(this.amount).array();
         System.arraycopy(ambytes, 0, result, 41 - ambytes.length, ambytes.length);
-        return result;
+        return Bytes.wrap(result);
     }
 }

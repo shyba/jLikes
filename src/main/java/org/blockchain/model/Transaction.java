@@ -45,7 +45,7 @@ public class Transaction {
             List<TransactionOutput> outputs = new ArrayList<>(outputListSize);
             for (int i = 0; i < outputListSize; i++) {
                 int size = in.read();
-                outputs.add(TransactionOutput.fromBytes(in.readNBytes(size)));
+                outputs.add(TransactionOutput.fromBytes(Bytes.wrap(in.readNBytes(size))));
             }
             return new Transaction(inputs, outputs);
         } catch (IOException e) {
@@ -103,9 +103,9 @@ public class Transaction {
             }
             result.write(this.outputs.size());
             for (TransactionOutput out : this.outputs) {
-                byte[] outBytes = out.asBytes();
-                result.write(outBytes.length);
-                result.write(outBytes);
+                Bytes outBytes = out.asBytes();
+                result.write(outBytes.size());
+                result.write(outBytes.toArray());
             }
             return Bytes.wrap(result.toByteArray());
         } catch (IOException e) {

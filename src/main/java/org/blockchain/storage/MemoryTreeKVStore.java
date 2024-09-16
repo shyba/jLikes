@@ -24,6 +24,11 @@ public class MemoryTreeKVStore<T> extends KVStore<T> {
     }
 
     @Override
+    public void remove(Bytes key) {
+        this.memory.remove(key);
+    }
+
+    @Override
     public List<T> iter(Bytes prefix) {
         ArrayList<T> results = new ArrayList<>();
         for (Map.Entry<Bytes, Bytes> entry : this.memory.tailMap(prefix).sequencedEntrySet()) {

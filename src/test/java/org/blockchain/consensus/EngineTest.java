@@ -4,6 +4,7 @@ import org.apache.tuweni.bytes.Bytes32;
 import org.blockchain.crypto.ECPrivateKey;
 import org.blockchain.model.Block;
 import org.blockchain.model.Transaction;
+import org.blockchain.model.TransactionOutput;
 import org.blockchain.storage.KVStore;
 import org.blockchain.storage.MemoryTreeKVStore;
 import org.junit.jupiter.api.Test;
@@ -17,6 +18,7 @@ class EngineTest {
     class TestChain {
         public KVStore<Block> blockKVStore;
         public KVStore<Transaction> txKVStore;
+        public KVStore<TransactionOutput> utxoKVStore;
         public ECPrivateKey key;
         public Engine engine;
 
@@ -27,9 +29,12 @@ class EngineTest {
             txKVStore = new MemoryTreeKVStore<>(
                     Transaction::asBytes, Transaction::fromBytes
             );
+            utxoKVStore = new MemoryTreeKVStore<>(
+                    TransactionOutput::asBytes, TransactionOutput::fromBytes
+            );
 
             key = new ECPrivateKey();
-            engine = new Engine(blockKVStore, txKVStore, key);
+            engine = new Engine(blockKVStore, txKVStore, utxoKVStore, key);
         }
     }
 
@@ -57,6 +62,29 @@ class EngineTest {
         this.verifiedAdvance(chain, 2);
         assertEquals(2, chain.blockKVStore.get(chain.engine.getLatestBlockHash()).getTxs().size());
         this.verifiedAdvance(chain, 3);
+    }
+
+    @Test
+    void doubleSpend() {
+        TestChain chain = new TestChain();
+        ECPrivateKey secondAccount = new ECPrivateKey();
+
+        this.verifiedAdvance(chain, 1);
+        Transaction input = chain.blockKVStore.get(chain.engine.getLatestBlockHash()).getTxs().getFirst();
+        Transaction send = input.spend(chain.key, secondAccount.getPublicKey().getHash(), 5);
+        try {
+            chain.engine.submitTransaction(send);
+        } catch (Exception e) {
+            fail(e);
+        }
+        this.verifiedAdvance(chain, 2);
+        send = input.spend(chain.key, secondAccount.getPublicKey().getHash(), 5);
+        try {
+            chain.engine.submitTransaction(send);
+            fail("this should fail!");
+        } catch (Exception e) {
+            // success
+        }
     }
 
     void verifiedAdvance(TestChain chain, int expectedHeight) {
