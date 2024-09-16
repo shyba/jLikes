@@ -131,7 +131,7 @@ public class Transaction {
                 TransactionInput in = new TransactionInput(this.getTransactionHash(), i, new byte[0], pubkey);
                 inputs.add(in);
             }
-            if (total < amount) throw new RuntimeException("Insufficient balance from tx.");
+            //if (total < amount) throw new RuntimeException("Insufficient balance from tx.");
             amount = spendAll ? total : amount;
             List<TransactionOutput> outputs = new ArrayList<>();
             outputs.add(new TransactionOutput(targetHash, amount));

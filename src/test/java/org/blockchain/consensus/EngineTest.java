@@ -139,6 +139,22 @@ class EngineTest {
 
         this.verifiedAdvance(chain, 1);
         Transaction input = chain.blockKVStore.get(chain.engine.getLatestBlockHash()).getTxs().getFirst();
+        Transaction send = input.spend(chain.key, secondAccount.getPublicKey().getHash(), 50);
+        try {
+            chain.engine.submitTransaction(send);
+            fail("tx accepted with over draft");
+        } catch (Exception e) {
+            // pass
+        }
+    }
+
+    @Test
+    void overdraft() {
+        TestChain chain = new TestChain();
+        ECPrivateKey secondAccount = new ECPrivateKey();
+
+        this.verifiedAdvance(chain, 1);
+        Transaction input = chain.blockKVStore.get(chain.engine.getLatestBlockHash()).getTxs().getFirst();
         Transaction send = input.spend(secondAccount, secondAccount.getPublicKey().getHash(), 5);
         try {
             chain.engine.submitTransaction(send);
