@@ -131,6 +131,23 @@ class EngineTest {
         }
     }
 
+    @Test
+    void wrongKeyTransfer() {
+        TestChain chain = new TestChain();
+        ECPrivateKey secondAccount = new ECPrivateKey();
+        ECPrivateKey thirdAccount = new ECPrivateKey();
+
+        this.verifiedAdvance(chain, 1);
+        Transaction input = chain.blockKVStore.get(chain.engine.getLatestBlockHash()).getTxs().getFirst();
+        Transaction send = input.spend(secondAccount, secondAccount.getPublicKey().getHash(), 5);
+        try {
+            chain.engine.submitTransaction(send);
+            fail("tx accepted with wrong key");
+        } catch (Exception e) {
+            // pass
+        }
+    }
+
     void verifiedAdvance(TestChain chain, int expectedHeight) {
         try {
             chain.engine.advance();

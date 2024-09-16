@@ -127,13 +127,9 @@ public class Transaction {
             List<TransactionInput> inputs = new ArrayList<>(this.outputs.size());
             for (int i = 0; i < this.inputs.size(); i++) {
                 TransactionOutput out = this.outputs.get(i);
-                if (out.getTargetHash().compareTo(ownerKeyHash) != 0) {
-                    throw new RuntimeException("The given private key is not the owner of one of the outputs");
-                } else {
-                    total += out.getAmount();
-                    TransactionInput in = new TransactionInput(this.getTransactionHash(), i, new byte[0], pubkey);
-                    inputs.add(in);
-                }
+                total += out.getAmount();
+                TransactionInput in = new TransactionInput(this.getTransactionHash(), i, new byte[0], pubkey);
+                inputs.add(in);
             }
             if (total < amount) throw new RuntimeException("Insufficient balance from tx.");
             amount = spendAll ? total : amount;
