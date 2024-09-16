@@ -87,6 +87,27 @@ class EngineTest {
         }
     }
 
+    @Test
+    void simpleMempoolTransfer() {
+        TestChain chain = new TestChain();
+        ECPrivateKey secondAccount = new ECPrivateKey();
+        ECPrivateKey thirdAccount = new ECPrivateKey();
+
+        this.verifiedAdvance(chain, 1);
+        Transaction input = chain.blockKVStore.get(chain.engine.getLatestBlockHash()).getTxs().getFirst();
+        Transaction send = input.spend(chain.key, secondAccount.getPublicKey().getHash(), 5);
+        try {
+            chain.engine.submitTransaction(send);
+            Transaction send2 = send.spend(secondAccount, thirdAccount.getPublicKey().getHash(), 5);
+            chain.engine.submitTransaction(send2);
+        } catch (Exception e) {
+            fail(e);
+        }
+        this.verifiedAdvance(chain, 2);
+        assertEquals(3, chain.blockKVStore.get(chain.engine.getLatestBlockHash()).getTxs().size());
+        this.verifiedAdvance(chain, 3);
+    }
+
     void verifiedAdvance(TestChain chain, int expectedHeight) {
         try {
             chain.engine.advance();

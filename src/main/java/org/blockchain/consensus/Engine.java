@@ -83,16 +83,18 @@ public class Engine {
 
         for (TransactionInput input : tx.getInputs()) {
             Transaction referencedTx = this.txStore.get(input.getTxHash());
+            boolean onMempool = false;
             if (referencedTx == null) {
                 for (Transaction mempoolTx : this.mempool) {
                     if (mempoolTx.getTransactionHash().equals(input.getTxHash())) {
                         referencedTx = mempoolTx;
+                        onMempool = true;
                     }
                 }
                 if (referencedTx == null) throw new Exception("Input not found");
             }
             TransactionOutput referencedOut = referencedTx.getOutputs()[input.getTxOutIdx()];
-            if (this.utxoStore.get(this.spentKey(referencedTx.getTransactionHash(), input.getTxOutIdx())) == null) {
+            if (!onMempool && this.utxoStore.get(this.spentKey(referencedTx.getTransactionHash(), input.getTxOutIdx())) == null) {
                 throw new Exception("Input already spent");
             }
             if (!referencedOut.getTargetHash().equals(new ECPublicKey(input.getPublicKeyBytes()).getHash()))
